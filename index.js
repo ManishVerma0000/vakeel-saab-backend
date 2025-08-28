@@ -11,9 +11,17 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 app.use(cors({
-  origin: '*', // Allow all origins for mobile testing
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://192.168.0.30:3000',
+    'http://192.168.0.180:3001',
+    'https://001c128f27e7.ngrok-free.app',
+    'http://001c128f27e7.ngrok-free.app'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 app.use(express.json());
 
@@ -472,11 +480,11 @@ function getSession(userId) {
 }
 
 const PORT = process.env.PORT || 4000;
-const HOST = '0.0.0.0'; // Accept connections from any IP address
+const HOST = '192.168.1.114'; // Accept connections from any IP address
 
 server.listen(PORT, HOST, () => {
   console.log(`✅ Server running on ${HOST}:${PORT}`);
-  console.log(`🌐 Accessible from network: http://192.168.0.180:${PORT}`);
+  console.log(`🌐 Accessible from network: http://192.168.1.114:${PORT}`);
   console.log(`📡 WebSocket server ready`);
   console.log(`🔗 API endpoints:`);
   console.log(`   POST /register`);
