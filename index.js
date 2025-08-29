@@ -24,8 +24,6 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
-
-// Import utility functions
 const { 
   users, 
   addUser, 
@@ -47,6 +45,14 @@ initializeSampleData();
 
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+function getSession(userId) {
+  for (const client of wss.clients) {
+    if (client.userId === userId) {
+      return client;
+    }
+  }
+  return null;
+}
 
 // Middleware to verify JWT token
 const authenticateToken = (req, res, next) => {
@@ -144,7 +150,6 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// POST /lawyers/status (protected endpoint for lawyers to set their status)
 app.post('/lawyers/status', authenticateToken, (req, res) => {
   try {
     const { status } = req.body;
@@ -174,7 +179,6 @@ app.post('/lawyers/status', authenticateToken, (req, res) => {
   }
 });
 
-// GET /lawyers (get all lawyers)
 app.get('/lawyers', (req, res) => {
   try {
     const allLawyers = getAllUsers().filter(user => user.role === 'LAWYER');
@@ -191,7 +195,6 @@ app.get('/lawyers', (req, res) => {
   }
 });
 
-// GET /debug (debug endpoint to check sessions)
 app.get('/debug', (req, res) => {
   try {
     const allUsers = getAllUsers();
@@ -297,22 +300,28 @@ wss.on('connection', (ws, req) => {
          return;
        }
 
-      // Handle WebRTC signaling
-      if (['offer', 'answer', 'ice-candidate'].includes(data.type)) {
-        const targetUser = getUser(data.targetId);
-        if (targetUser) {
-          const targetSession = getSession(data.targetId);
-          if (targetSession && targetSession.readyState === WebSocket.OPEN) {
-            targetSession.send(JSON.stringify({
-              type: data.type,
-              fromId: userId,
-              data: data.data
-            }));
-            console.log(`📡 ${data.type.toUpperCase()} from ${getUser(userId)?.username} to ${targetUser.username}`);
-          }
-        }
-        return;
-      }
+if (['offer', 'answer', 'ice-candidate'].includes(data.type)) {
+  console.log(`📡 Handling ${data.type} from user ${userId} to ${data.targetId}`);
+  const targetUser = getUser(data.targetId);
+  if (targetUser) {
+    const targetSession = getSession(data.targetId);
+    if (targetSession && targetSession.readyState === WebSocket.OPEN) {
+      const message = {
+        type: data.type,
+        fromId: userId,
+        targetId: data.targetId,
+        data: data.data
+      };
+      targetSession.send(JSON.stringify(message));
+      console.log(`✅ ${data.type.toUpperCase()} sent successfully`);
+    } else {
+      console.log(`❌ Target session not available for ${targetUser.username}`);
+    }
+  } else {
+    console.log(`❌ Target user not found for ID: ${data.targetId}`);
+  }
+  return;
+}
 
              // Handle call requests
        if (data.type === 'call-request') {
@@ -443,7 +452,6 @@ function broadcastUserList() {
     }))
   });
 
-  // Send clients list to lawyers
   const lawyerMessage = JSON.stringify({
     type: 'user-list-update',
     clients: allClients.map(client => ({
@@ -469,22 +477,14 @@ function broadcastUserList() {
   });
 }
 
-// Helper function to get session
-function getSession(userId) {
-  for (const client of wss.clients) {
-    if (client.userId === userId) {
-      return client;
-    }
-  }
-  return null;
-}
+
 
 const PORT = process.env.PORT || 4000;
 const HOST = '192.168.1.114'; // Accept connections from any IP address
 
-server.listen(PORT, HOST, () => {
-  console.log(`✅ Server running on ${HOST}:${PORT}`);
-  console.log(`🌐 Accessible from network: http://192.168.1.114:${PORT}`);
+server.listen(PORT, () => {
+  console.log(`✅ Server running on:${PORT}`);
+  console.log(`🌐 Accessible from network: http://localhost:${PORT}`);
   console.log(`📡 WebSocket server ready`);
   console.log(`🔗 API endpoints:`);
   console.log(`   POST /register`);

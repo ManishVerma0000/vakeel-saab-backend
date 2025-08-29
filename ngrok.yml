@@ -1,8 +1,0 @@
-authtoken: 31uxNlVyy2bNXwCVkJ2MRbMi2l8_3rwqQuyG8sY6WGZEJ5tKq
-tunnels:
-  frontend:
-    addr: 3000
-    proto: http
-  backend:
-    addr: 4000
-    proto: http
